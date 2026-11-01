@@ -168,7 +168,7 @@ h2{font-size:22px;margin:38px 0 14px;font-weight:600}
       <select id="sview"><option value="inside">Inside this site</option><option value="new">In a new tab</option></select>
       <label for="prox">Proxy site (main search)</label>
       <input id="prox" placeholder="https://your-proxy.example/">
-      <p class="hint">Paste your proxy's homepage. Searches from Home then open it inside the site, and your search is copied so you can paste it into the proxy's search bar. If the address contains %s, that part is replaced with the search page address instead. Leave empty to load the search engine directly. If the proxy stays blank in the pane, use Open in new tab.</p>
+      <p class="hint">Paste your proxy's homepage. Searches from Home then open it inside the site, and your search is copied so you can paste it into the proxy's search bar. If the address contains %q, that part is replaced with just your search words, which suits proxies with a search address like ...search?q=%q. If it contains %s, that part is replaced with the full search page address instead. Leave empty to load the search engine directly. If the proxy stays blank in the pane, use Open in new tab.</p>
     </div>
 
     <div class="sec"><h2>Game library</h2>
@@ -245,6 +245,7 @@ h2{font-size:22px;margin:38px 0 14px;font-weight:600}
 })();
 const fav=d=>"https://www.google.com/s2/favicons?domain="+d+"&sz=64";
 const PRESETS=[["BiliBili","bilibili","bilibili.com"],["Google Calendar","Google Calendar","calendar.google.com"],["Canvas","Dashboard","canvas.instructure.com"],["Deltamath","DeltaMath","deltamath.com"],["Edpuzzle","Edpuzzle","edpuzzle.com"],["Google Classroom","Classroom","classroom.google.com"],["Google Drive","My Drive - Google Drive","drive.google.com"],["Gmail","Inbox - Gmail","mail.google.com"],["Itch.io","itch.io - Indie game hosting marketplace","itch.io"],["Khan Academy","Khan Academy","khanacademy.org"],["Google Meet","Google Meet","meet.google.com"],["Google Search","Google","www.google.com"],["Wikipedia","Wikipedia","en.wikipedia.org"],["Zoom","Zoom","zoom.us"]];
+const DEFAULT_PROX="https://azureserv.com/search?q=%q&rdr=1&__cpo=aHR0cHM6Ly93d3cuYmluZy5jb20";
 const DEFAULT_TAB={title:"My Drive - Google Drive",icon:fav("drive.google.com")};
 const CFG0={owner:"",repo:"",folder:"games",branch:"HEAD"};
 const RENAMES={cookieclicker:"Cookie Clicker",pacman:"Pac-Man",flappybird:"Flappy Bird",cuttherope:"Cut the Rope",crossyroad:"Crossy Road",motox3m2:"Moto X3M 2",tetris:"Tetris"};
@@ -403,9 +404,9 @@ $("#more").onclick=()=>{state.shown+=150;renderGames(false)};
 const ENG={google:"https://www.google.com/search?igu=1&q=%s",ddg:"https://duckduckgo.com/?q=%s",bing:"https://www.bing.com/search?q=%s",wiki:"https://en.wikipedia.org/w/index.php?search=%s"};
 let wurl="";
 function webSearch(q){
-  const p=store.get("prox","").trim(),tpl=p.includes("%s");
+  const p=store.get("prox",DEFAULT_PROX).trim(),raw=p.includes("%q"),tpl=raw||p.includes("%s");
   let url=ENG[store.get("eng","google")].replace("%s",encodeURIComponent(q));
-  if(p){if(tpl)url=p.replace("%s",encodeURIComponent(url));else{url=p;try{navigator.clipboard.writeText(q)}catch(e){}}}
+  if(p){if(raw)url=p.replace(/%q/g,encodeURIComponent(q));else if(tpl)url=p.replace("%s",encodeURIComponent(url));else{url=p;try{navigator.clipboard.writeText(q)}catch(e){}}}
   wurl=url;
   if(store.get("sview","inside")==="new"){window.open(url,"_blank","noopener");return}
   $("#wq").value=q;$("#wframe").src=url;
@@ -450,8 +451,8 @@ $("#cloak").value=store.get("cloak",true)?"on":"off";$("#cloak").onchange=e=>sto
 $("#mode").value=store.get("mode","blank");$("#mode").onchange=e=>store.set("mode",e.target.value);
 $("#eng").value=store.get("eng","google");$("#eng").onchange=e=>store.set("eng",e.target.value);
 $("#sview").value=store.get("sview","inside");$("#sview").onchange=e=>store.set("sview",e.target.value);
-function updatePH(){q.placeholder=store.get("prox","").trim()?"Search the web through your proxy":"Search the web, or type a game name"}
-$("#prox").value=store.get("prox","");$("#prox").oninput=e=>{store.set("prox",e.target.value);updatePH()};updatePH();
+function updatePH(){q.placeholder=store.get("prox",DEFAULT_PROX).trim()?"Search the web through your proxy":"Search the web, or type a game name"}
+$("#prox").value=store.get("prox",DEFAULT_PROX);$("#prox").oninput=e=>{store.set("prox",e.target.value);updatePH()};updatePH();
 $("#clear").onclick=()=>{store.set("recent",[]);renderRecent()};
 {const sv=store.get("src",{});$("#repo").value=sv.owner&&sv.repo?sv.owner+"/"+sv.repo:"";$("#folder").value=sv.folder!==undefined?sv.folder:"games"}
 $("#apply").onclick=()=>{const p=$("#repo").value.trim().replace(/^https?:\/\/github\.com\//,"").replace(/\/$/,"").split("/");
