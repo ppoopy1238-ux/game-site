@@ -1,0 +1,7 @@
+# Proxy the Sublevel Cloudflare Worker through this site so the browser
+# makes same-origin requests (the Worker only sends CORS headers for GitHub Pages).
+[[redirects]]
+  from = "/worker/*"
+  to = "https://sublevel-proxy.ppoopy1238.workers.dev/:splat"
+  status = 200
+  force = true
