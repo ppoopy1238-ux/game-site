@@ -432,7 +432,11 @@ $("#more").onclick=()=>{state.shown+=150;renderGames(false)};
 
 const ENG={google:"https://www.google.com/search?igu=1&q=%s",ddg:"https://duckduckgo.com/?q=%s",bing:"https://www.bing.com/search?q=%s",wiki:"https://en.wikipedia.org/w/index.php?search=%s"};
 let wurl="";
-function workerBase(){return store.get("worker","https://sublevel-proxy.ppoopy1238.workers.dev").trim().replace(/\/$/,"")}
+const DEFAULT_WORKER="https://sublevel-proxy.ppoopy1238.workers.dev";
+function workerBase(){const b=store.get("worker",DEFAULT_WORKER).trim().replace(/\/$/,"");
+  // Outside GitHub Pages, route the default Worker through this site's /worker proxy (see netlify.toml) to avoid CORS blocks.
+  if(b===DEFAULT_WORKER&&!/\.github\.io$/.test(location.hostname)&&/^https?:$/.test(location.protocol))return location.origin+"/worker";
+  return b}
 function isWebAddress(value){
   const v=value.trim();
   if(/^https?:\/\//i.test(v))return true;
