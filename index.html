@@ -804,7 +804,7 @@ note();renderList();
 })();
 </script>
 
-  <script>
+<script>
 (()=>{
   const st=document.createElement("style");
   st.textContent=`
@@ -821,7 +821,6 @@ note();renderList();
   document.body.appendChild(btn);
 
   const active=()=>document.fullscreenElement||document.webkitFullscreenElement;
-  const supported=()=>document.fullscreenEnabled||document.webkitFullscreenEnabled;
   const sync=()=>{btn.hidden=!!active()};
   btn.onclick=()=>{
     const el=document.documentElement;
@@ -830,8 +829,7 @@ note();renderList();
     try{
       const p=req.call(el);
       if(p&&p.catch)p.catch(()=>alert("Full screen was blocked. Try opening the site directly instead of inside another page."));
-    } catch(e){alert("Full screen was blocked.")}
-};
+    }catch(e){alert("Full screen was blocked.")}
   };
   document.addEventListener("fullscreenchange",sync);
   document.addEventListener("webkitfullscreenchange",sync);
