@@ -822,11 +822,16 @@ note();renderList();
 
   const active=()=>document.fullscreenElement||document.webkitFullscreenElement;
   const supported=()=>document.fullscreenEnabled||document.webkitFullscreenEnabled;
-  const sync=()=>{btn.hidden=!!active()||!supported()};
+  const sync=()=>{btn.hidden=!!active()};
   btn.onclick=()=>{
     const el=document.documentElement;
     const req=el.requestFullscreen||el.webkitRequestFullscreen;
-    if(req)req.call(el);
+    if(!req){alert("This browser doesn't allow full screen for this page.");return}
+    try{
+      const p=req.call(el);
+      if(p&&p.catch)p.catch(()=>alert("Full screen was blocked. Try opening the site directly instead of inside another page."));
+    } catch(e){alert("Full screen was blocked.")}
+};
   };
   document.addEventListener("fullscreenchange",sync);
   document.addEventListener("webkitfullscreenchange",sync);
