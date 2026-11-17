@@ -151,6 +151,7 @@ h2{font-size:22px;margin:38px 0 14px;font-weight:600}
   <button class="nav" data-v="entertainment">Entertainment</button>
   <button class="nav" data-v="ai">AI</button>
   <button class="nav" data-v="settings">Settings</button>
+  <button class="nav" data-v="admin" id="adminNav" hidden>Admin</button>
   <div class="gauge">Titles online<b id="total">0</b>in the archive</div>
 </aside>
 
@@ -285,6 +286,65 @@ h2{font-size:22px;margin:38px 0 14px;font-weight:600}
     </div>
   </div>
 </section>
+
+<section class="view" id="v-admin">
+  <h1 style="font-size:44px">Admin dashboard</h1>
+  <p class="hint">Manage Sublevel accounts, review sign-in activity, create invitations, and control site maintenance.</p>
+  <div class="set">
+    <div class="sec">
+      <h2>Site overview</h2>
+      <div class="zones" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+        <div class="sec"><span class="hint">Total accounts</span><h2 id="statUsers">—</h2></div>
+        <div class="sec"><span class="hint">Active accounts</span><h2 id="statActive">—</h2></div>
+        <div class="sec"><span class="hint">Suspended accounts</span><h2 id="statSuspended">—</h2></div>
+        <div class="sec"><span class="hint">Successful logins (24h)</span><h2 id="statLogins">—</h2></div>
+      </div>
+      <button class="btn" id="refreshAdmin" type="button">Refresh dashboard</button>
+    </div>
+    <div class="sec">
+      <h2>User accounts</h2>
+      <p class="hint">Review account roles and activity. You can suspend or reactivate non-admin accounts.</p>
+      <div style="overflow-x:auto">
+        <table id="adminUsers" style="width:100%;border-collapse:collapse;text-align:left;font-size:13px">
+          <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Created</th><th>Last login</th><th>Action</th></tr></thead>
+          <tbody><tr><td colspan="6" class="hint">Loading accounts…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>Login activity</h2>
+      <p class="hint">Recent successful and failed sign-in attempts recorded by the server.</p>
+      <div style="overflow-x:auto">
+        <table id="adminLogs" style="width:100%;border-collapse:collapse;text-align:left;font-size:13px">
+          <thead><tr><th>Username</th><th>Result</th><th>Time</th><th>IP hint</th><th>Browser</th></tr></thead>
+          <tbody><tr><td colspan="5" class="hint">Loading activity…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>Invitation codes</h2>
+      <p class="hint">Generate a one-time or reusable invitation code. Copy the new code when it appears; it is only shown once.</p>
+      <div class="two">
+        <div><label for="inviteUses">Maximum uses</label><input id="inviteUses" type="number" min="1" max="100" value="1"></div>
+        <div><label for="inviteDays">Expires in (days)</label><input id="inviteDays" type="number" min="1" max="365" value="7"></div>
+      </div>
+      <div class="btns"><button class="btn pri" id="makeInvite" type="button">Generate invitation</button></div>
+      <p id="newInvite" class="hint" role="status" aria-live="polite"></p>
+      <div id="inviteList"><p class="hint">Loading invitations…</p></div>
+    </div>
+    <div class="sec">
+      <h2>Maintenance and announcements</h2>
+      <label style="display:flex;align-items:center;gap:10px"><input id="maintenanceOn" type="checkbox" style="width:auto"> Enable maintenance mode</label>
+      <label for="maintenanceMessage">Maintenance message</label>
+      <textarea id="maintenanceMessage" rows="3" maxlength="240" placeholder="Sublevel is temporarily undergoing maintenance. Please check back soon."></textarea>
+      <label for="siteAnnouncement">Site announcement</label>
+      <textarea id="siteAnnouncement" rows="3" maxlength="500" placeholder="A message shown to users when maintenance mode is off."></textarea>
+      <div class="btns"><button class="btn pri" id="saveAdminSettings" type="button">Save site settings</button></div>
+      <p id="adminMessage" class="hint" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <div id="player" role="dialog" aria-label="Game player">
@@ -375,7 +435,7 @@ try{if(sublevelToken){const part=sublevelToken.split(".")[0].replace(/-/g,"+").r
 function authQuery(){return sublevelToken?"&token="+encodeURIComponent(sublevelToken):""}
 function showLogin(message=""){ $("#loginGate").hidden=false;document.body.classList.add("locked");$("#loginError").textContent=message }
 function enterSite(){ $("#loginGate").hidden=true;document.body.classList.remove("locked") }
-$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();const base=workerBase();if(!base){showLogin("Set your Sublevel Worker URL in Settings first, then reload.");return}const button=$("#loginButton");button.disabled=true;button.textContent="Checking...";$("#loginError").textContent="";try{const response=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("#loginUser").value.trim(),password:$("#loginPass").value})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.token)throw new Error(data.error||"Login failed. Check your username and password.");sublevelToken=data.token;sessionStorage.setItem("sublevel.auth",sublevelToken);$("#loginPass").value="";enterSite();load()}catch(err){showLogin(err.message||"Could not reach the Sublevel login service.")}finally{button.disabled=false;button.textContent="Enter Sublevel"}});
+$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();const base=workerBase();if(!base){showLogin("Set your Sublevel Worker URL in Settings first, then reload.");return}const button=$("#loginButton");button.disabled=true;button.textContent="Checking...";$("#loginError").textContent="";try{const response=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("#loginUser").value.trim(),password:$("#loginPass").value})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.token)throw new Error(data.error||"Login failed. Check your username and password.");sublevelToken=data.token;sessionStorage.setItem("sublevel.auth",sublevelToken);$("#loginPass").value="";enterSite();load();if(typeof initSublevelAdmin==="function")await initSublevelAdmin()}catch(err){showLogin(err.message||"Could not reach the Sublevel login service.")}finally{button.disabled=false;button.textContent="Enter Sublevel"}});
 if(sublevelToken)enterSite();else showLogin();
 const key=s=>s.toLowerCase().replace(/[^a-z0-9]/g,"");
 
@@ -518,7 +578,7 @@ let wurl="";
 const DEFAULT_WORKER="https://sublevel-proxy.ppoopy1238.workers.dev";
 function workerBase(){const b=store.get("worker",DEFAULT_WORKER).trim().replace(/\/$/,"");
   // Outside GitHub Pages, route the default Worker through this site's /worker proxy (see netlify.toml) to avoid CORS blocks.
-  if(b===DEFAULT_WORKER&&!/\.github\.io$/.test(location.hostname)&&/^https?:$/.test(location.protocol))return location.origin+"/worker";
+  if(b===DEFAULT_WORKER&&/\.netlify\.app$/i.test(location.hostname)&&/^https?:$/.test(location.protocol))return location.origin+"/worker";
   return b}
 function isWebAddress(value){
   const v=value.trim();
