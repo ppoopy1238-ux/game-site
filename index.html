@@ -317,7 +317,7 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 
 <section class="view" id="v-admin">
   <h1 style="font-size:44px">Admin dashboard</h1>
-  <p class="hint">Manage Sublevel accounts, review sign-in activity, create invitations, and control site maintenance.</p>
+  <p class="hint">Manage Sublevel accounts, review security and administrator activity, export records, and control site maintenance.</p>
   <div class="set">
     <div class="sec">
       <h2>Site overview</h2>
@@ -331,21 +331,48 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
     </div>
     <div class="sec">
       <h2>User accounts</h2>
-      <p class="hint">Review account roles and activity. You can suspend or reactivate non-admin accounts.</p>
+      <p class="hint">Search accounts, filter by role or status, and suspend or reactivate non-admin accounts.</p>
+      <div class="two" style="align-items:end">
+        <div><label for="adminUserSearch">Search username</label><input id="adminUserSearch" type="search" placeholder="Find an account…"></div>
+        <div><label for="adminUserFilter">Filter accounts</label><select id="adminUserFilter"><option value="all">All accounts</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="admin">Administrators</option><option value="user">Regular users</option></select></div>
+      </div>
+      <div class="btns"><button class="btn" id="exportUsers" type="button">Export users CSV</button></div>
       <div style="overflow-x:auto">
         <table id="adminUsers" style="width:100%;border-collapse:collapse;text-align:left;font-size:13px">
           <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Created</th><th>Last login</th><th>Action</th></tr></thead>
           <tbody><tr><td colspan="6" class="hint">Loading accounts…</td></tr></tbody>
         </table>
       </div>
+      <p id="adminUserCount" class="hint"></p>
     </div>
     <div class="sec">
-      <h2>Login activity</h2>
-      <p class="hint">Recent successful and failed sign-in attempts recorded by the server.</p>
+      <h2>Login activity and security</h2>
+      <p class="hint">Recent successful and failed sign-in attempts. Repeated failures are highlighted as signals to review, not proof of an attack.</p>
+      <div class="btns"><button class="btn" id="exportLoginLogs" type="button">Export login records CSV</button></div>
+      <div id="securitySummary" class="hint" role="status">Checking recent login activity…</div>
+      <h3>Potentially suspicious activity</h3>
+      <div style="overflow-x:auto">
+        <table id="suspiciousLogins" style="width:100%;border-collapse:collapse;text-align:left;font-size:13px">
+          <thead><tr><th>IP hint</th><th>Failed attempts</th><th>Latest attempt</th><th>Account names</th></tr></thead>
+          <tbody><tr><td colspan="4" class="hint">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <h3>Recent login records</h3>
       <div style="overflow-x:auto">
         <table id="adminLogs" style="width:100%;border-collapse:collapse;text-align:left;font-size:13px">
           <thead><tr><th>Username</th><th>Result</th><th>Time</th><th>IP hint</th><th>Browser</th></tr></thead>
           <tbody><tr><td colspan="5" class="hint">Loading activity…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>Administrator activity</h2>
+      <p class="hint">A record of administrative changes, such as account status changes, invitation creation, and site-setting updates.</p>
+      <div class="btns"><button class="btn" id="exportAuditLogs" type="button">Export admin activity CSV</button></div>
+      <div style="overflow-x:auto">
+        <table id="adminAudit" style="width:100%;border-collapse:collapse;text-align:left;font-size:13px">
+          <thead><tr><th>Administrator</th><th>Action</th><th>Details</th><th>Time</th></tr></thead>
+          <tbody><tr><td colspan="4" class="hint">Loading administrator activity…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -946,6 +973,43 @@ async function adminApi(path, options={}){
   return data;
 }
 function adminDate(value){return value?new Date(Number(value)*1000).toLocaleString():"—"}
+let adminUsersCache=[],adminLoginCache=[],adminAuditCache=[];
+function adminCell(row,value){const td=document.createElement("td");td.style.padding="8px 6px";td.style.borderTop="1px solid var(--line)";td.textContent=value==null||value===""?"—":String(value);row.appendChild(td);return td}
+function downloadAdminCsv(filename,rows){
+  if(!rows||!rows.length){alert("There are no records to export yet.");return}
+  const csv=rows.map(row=>row.map(v=>{const s=String(v??"");return '"'+s.replace(/"/g,'""')+'"'}).join(",")).join("\r\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function renderAdminUsers(){
+  const query=($("#adminUserSearch").value||"").trim().toLowerCase(),filter=$("#adminUserFilter").value;
+  const list=adminUsersCache.filter(u=>(!query||String(u.username).toLowerCase().includes(query))&&(filter==="all"||(filter==="active"&&u.status==="active")||(filter==="suspended"&&u.status!=="active")||u.role===filter));
+  const tbody=$("#adminUsers tbody");tbody.innerHTML="";
+  list.forEach(u=>{
+    const tr=document.createElement("tr");
+    [u.username,u.role,u.status,adminDate(u.created_at),adminDate(u.last_login)].forEach(v=>adminCell(tr,v));
+    const td=document.createElement("td");td.style.borderTop="1px solid var(--line)";
+    if(u.role!=="admin"){const b=document.createElement("button");b.className="btn";b.textContent=u.status==="active"?"Suspend":"Reactivate";b.onclick=async()=>{if(!confirm((u.status==="active"?"Suspend ":"Reactivate ")+u.username+"?"))return;try{await adminApi("/admin/users/"+encodeURIComponent(u.id)+"/status",{method:"PATCH",body:JSON.stringify({status:u.status==="active"?"suspended":"active"})});await refreshAdminDashboard()}catch(e){alert(e.message)}};td.appendChild(b)}else td.textContent="Protected";
+    tr.appendChild(td);tbody.appendChild(tr);
+  });
+  $("#adminUserCount").textContent="Showing "+list.length+" of "+adminUsersCache.length+" accounts.";
+}
+function renderAdminLoginSecurity(){
+  const tbody=$("#adminLogs tbody");tbody.innerHTML="";
+  adminLoginCache.forEach(x=>{const tr=document.createElement("tr");[x.username,x.success?"Success":"Failed",adminDate(x.created_at),x.ip_hint,x.user_agent].forEach(v=>adminCell(tr,v));tbody.appendChild(tr)});
+  const now=Math.floor(Date.now()/1000),recent=adminLoginCache.filter(x=>!x.success&&now-Number(x.created_at)<=1800),byIp={};
+  recent.forEach(x=>{const ip=x.ip_hint||"unknown";(byIp[ip]??=[]).push(x)});
+  const flagged=Object.entries(byIp).filter(([,items])=>items.length>=3).sort((a,b)=>b[1].length-a[1].length);
+  $("#securitySummary").textContent=recent.length+" failed sign-in attempt(s) in the last 30 minutes; "+flagged.length+" IP hint(s) have 3 or more failures.";
+  const st=$("#suspiciousLogins tbody");st.innerHTML="";
+  if(!flagged.length){const tr=document.createElement("tr");adminCell(tr,"No repeated-failure pattern detected in the recent records.");st.appendChild(tr);return}
+  flagged.forEach(([ip,items])=>{const tr=document.createElement("tr");adminCell(tr,ip);adminCell(tr,items.length);adminCell(tr,adminDate(Math.max(...items.map(x=>Number(x.created_at)))));adminCell(tr,[...new Set(items.map(x=>x.username))].join(", "));st.appendChild(tr)});
+}
+function renderAdminAudit(){
+  const tbody=$("#adminAudit tbody");tbody.innerHTML="";
+  if(!adminAuditCache.length){const tr=document.createElement("tr");adminCell(tr,"No administrator actions have been recorded yet.");tbody.appendChild(tr);return}
+  adminAuditCache.forEach(x=>{const tr=document.createElement("tr");[x.username,x.action,x.details,adminDate(x.created_at)].forEach(v=>adminCell(tr,v));tbody.appendChild(tr)});
+}
 async function initSublevelAdmin(){
   if(!window.sublevelToken)return;
   try{
@@ -958,29 +1022,25 @@ async function initSublevelAdmin(){
 window.initSublevelAdmin=initSublevelAdmin;
 async function refreshAdminDashboard(){
   try{
-    const [stats,users,logs,invites,settings]=await Promise.all([
-      adminApi("/admin/overview"),adminApi("/admin/users"),adminApi("/admin/logs"),adminApi("/admin/invites"),adminApi("/admin/settings")
+    const [stats,users,logs,invites,settings,auditData]=await Promise.all([
+      adminApi("/admin/overview"),adminApi("/admin/users"),adminApi("/admin/logs"),adminApi("/admin/invites"),adminApi("/admin/settings"),adminApi("/admin/audit")
     ]);
     $("#statUsers").textContent=stats.users;$("#statActive").textContent=stats.active;$("#statSuspended").textContent=stats.suspended;$("#statLogins").textContent=stats.logins24h;
-    const tbody=$("#adminUsers tbody");tbody.innerHTML="";
-    users.users.forEach(u=>{
-      const tr=document.createElement("tr");
-      const cells=[u.username,u.role,u.status,adminDate(u.created_at),adminDate(u.last_login)];
-      cells.forEach(v=>{const td=document.createElement("td");td.style.padding="9px 6px";td.style.borderTop="1px solid var(--line)";td.textContent=v||"—";tr.appendChild(td)});
-      const td=document.createElement("td");td.style.borderTop="1px solid var(--line)";
-      if(u.role!=="admin"){const b=document.createElement("button");b.className="btn";b.textContent=u.status==="active"?"Suspend":"Reactivate";b.onclick=async()=>{try{await adminApi("/admin/users/"+encodeURIComponent(u.id)+"/status",{method:"PATCH",body:JSON.stringify({status:u.status==="active"?"suspended":"active"})});await refreshAdminDashboard()}catch(e){alert(e.message)}};td.appendChild(b)}else td.textContent="Protected";
-      tr.appendChild(td);tbody.appendChild(tr);
-    });
-    const lt=$("#adminLogs tbody");lt.innerHTML="";
-    logs.logs.forEach(x=>{const tr=document.createElement("tr");[x.username,x.success?"Success":"Failed",adminDate(x.created_at),x.ip_hint,x.user_agent].forEach(v=>{const td=document.createElement("td");td.style.padding="8px 6px";td.style.borderTop="1px solid var(--line)";td.textContent=v||"—";tr.appendChild(td)});lt.appendChild(tr)});
+    adminUsersCache=users.users||[];adminLoginCache=logs.logs||[];adminAuditCache=auditData.audit||[];
+    renderAdminUsers();renderAdminLoginSecurity();renderAdminAudit();
     const il=$("#inviteList");il.innerHTML="";
-    invites.invites.forEach(x=>{const p=document.createElement("p");p.className="hint";p.textContent="••••-"+x.code_hint+" · "+x.uses+"/"+x.max_uses+" uses · "+(x.revoked?"Revoked":adminDate(x.expires_at));il.appendChild(p)});
+    (invites.invites||[]).forEach(x=>{const p=document.createElement("p");p.className="hint";p.textContent="••••-"+x.code_hint+" · "+x.uses+"/"+x.max_uses+" uses · "+(x.revoked?"Revoked":adminDate(x.expires_at));il.appendChild(p)});
     $("#maintenanceOn").checked=settings.settings.maintenance==="1";
     $("#maintenanceMessage").value=settings.settings.maintenanceMessage||"";
     $("#siteAnnouncement").value=settings.settings.announcement||"";
     $("#adminMessage").textContent="Dashboard refreshed.";
   }catch(e){$("#adminMessage").textContent=e.message}
 }
+$("#adminUserSearch").addEventListener("input",renderAdminUsers);
+$("#adminUserFilter").addEventListener("change",renderAdminUsers);
+$("#exportUsers").addEventListener("click",()=>downloadAdminCsv("sublevel-users.csv",[["Username","Role","Status","Created","Last login"],...adminUsersCache.map(u=>[u.username,u.role,u.status,adminDate(u.created_at),adminDate(u.last_login)])]));
+$("#exportLoginLogs").addEventListener("click",()=>downloadAdminCsv("sublevel-login-activity.csv",[["Username","Result","Time","IP hint","Browser"],...adminLoginCache.map(x=>[x.username,x.success?"Success":"Failed",adminDate(x.created_at),x.ip_hint,x.user_agent])]));
+$("#exportAuditLogs").addEventListener("click",()=>downloadAdminCsv("sublevel-admin-activity.csv",[["Administrator","Action","Details","Time"],...adminAuditCache.map(x=>[x.username,x.action,x.details,adminDate(x.created_at)])]));
 $("#makeInvite").addEventListener("click",async()=>{
   try{const result=await adminApi("/admin/invites",{method:"POST",body:JSON.stringify({maxUses:Number($("#inviteUses").value),days:Number($("#inviteDays").value)})});$("#newInvite").textContent="New invitation code (copy it now): "+result.code;await refreshAdminDashboard()}catch(e){$("#newInvite").textContent=e.message}
 });
