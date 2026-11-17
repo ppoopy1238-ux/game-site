@@ -458,13 +458,13 @@ const OTHER="Casual and arcade";
 window.$=s=>document.querySelector(s);
 let GAMES=[],state={cat:"All",letter:"",q:"",shown:120};
 const store={get(k,d){try{const v=localStorage.getItem("sublevel."+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("sublevel."+k,JSON.stringify(v))}catch(e){}}};
-let sublevelToken=sessionStorage.getItem("sublevel.auth")||"";
-try{if(sublevelToken){const part=sublevelToken.split(".")[0].replace(/-/g,"+").replace(/_/g,"/");const payload=JSON.parse(atob(part));if(!payload.exp||payload.exp<=Math.floor(Date.now()/1000))throw new Error("expired")}}catch(e){sublevelToken="";sessionStorage.removeItem("sublevel.auth")}
-function authQuery(){return sublevelToken?"&token="+encodeURIComponent(sublevelToken):""}
+let window.sublevelToken=sessionStorage.getItem("sublevel.auth")||"";
+try{if(window.sublevelToken){const part=window.sublevelToken.split(".")[0].replace(/-/g,"+").replace(/_/g,"/");const payload=JSON.parse(atob(part));if(!payload.exp||payload.exp<=Math.floor(Date.now()/1000))throw new Error("expired")}}catch(e){window.sublevelToken="";sessionStorage.removeItem("sublevel.auth")}
+function authQuery(){return window.sublevelToken?"&token="+encodeURIComponent(window.sublevelToken):""}
 function showLogin(message=""){ $("#loginGate").hidden=false;document.body.classList.add("locked");$("#loginError").textContent=message }
 function enterSite(){ $("#loginGate").hidden=true;document.body.classList.remove("locked") }
-$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();const base=workerBase();if(!base){showLogin("Set your Sublevel Worker URL in Settings first, then reload.");return}const button=$("#loginButton");button.disabled=true;button.textContent="Checking...";$("#loginError").textContent="";try{const response=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("#loginUser").value.trim(),password:$("#loginPass").value})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.token)throw new Error(data.error||"Login failed. Check your username and password.");sublevelToken=data.token;sessionStorage.setItem("sublevel.auth",sublevelToken);$("#loginPass").value="";enterSite();load();if(typeof initSublevelAdmin==="function")await initSublevelAdmin()}catch(err){showLogin(err.message||"Could not reach the Sublevel login service.")}finally{button.disabled=false;button.textContent="Enter Sublevel"}});
-if(sublevelToken)enterSite();else showLogin();
+$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();const base=workerBase();if(!base){showLogin("Set your Sublevel Worker URL in Settings first, then reload.");return}const button=$("#loginButton");button.disabled=true;button.textContent="Checking...";$("#loginError").textContent="";try{const response=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("#loginUser").value.trim(),password:$("#loginPass").value})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.token)throw new Error(data.error||"Login failed. Check your username and password.");window.sublevelToken=data.token;sessionStorage.setItem("sublevel.auth",window.sublevelToken);$("#loginPass").value="";enterSite();load();if(typeof initSublevelAdmin==="function")await initSublevelAdmin()}catch(err){showLogin(err.message||"Could not reach the Sublevel login service.")}finally{button.disabled=false;button.textContent="Enter Sublevel"}});
+if(window.sublevelToken)enterSite();else showLogin();
 const key=s=>s.toLowerCase().replace(/[^a-z0-9]/g,"");
 
 function cfg(){
@@ -761,7 +761,7 @@ $("#clear").onclick=()=>{store.set("recent",[]);renderRecent()};
 $("#apply").onclick=()=>{const p=$("#repo").value.trim().replace(/^https?:\/\/github\.com\//,"").replace(/\/$/,"").split("/");
   store.set("src",{owner:p[0]||"",repo:p[1]||"",folder:$("#folder").value.trim().replace(/^\/|\/$/g,"")});load();go("games")};
 setTheme(store.get("theme","cyan"));
-if(sublevelToken)load();
+if(window.sublevelToken)load();
 </script>
 <script>
 var $ = window.$ || function(selector){ return document.querySelector(selector); };
@@ -933,14 +933,14 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 var $ = window.$ || function(selector){ return document.querySelector(selector); };
 async function adminApi(path, options={}){
   const base=workerBase();if(!base)throw new Error("Worker URL is not configured.");
-  const response=await fetch(base+path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+sublevelToken,...(options.headers||{})}});
+  const response=await fetch(base+path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+window.sublevelToken,...(options.headers||{})}});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||"Admin request failed.");
   return data;
 }
 function adminDate(value){return value?new Date(Number(value)*1000).toLocaleString():"—"}
 async function initSublevelAdmin(){
-  if(!sublevelToken)return;
+  if(!window.sublevelToken)return;
   try{
     const me=await adminApi("/auth/me");
     const isAdmin=me.user&&me.user.role==="admin";
@@ -981,7 +981,7 @@ $("#saveAdminSettings").addEventListener("click",async()=>{
 });
 $("#refreshAdmin").addEventListener("click",refreshAdminDashboard);
 $("#adminNav").addEventListener("click",()=>refreshAdminDashboard());
-if(sublevelToken)initSublevelAdmin();
+if(window.sublevelToken)initSublevelAdmin();
 </script>
 
 
@@ -1001,7 +1001,7 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 
   const getToken = () => {
     try {
-      if (typeof sublevelToken !== "undefined" && sublevelToken) return sublevelToken;
+      if (typeof window.sublevelToken !== "undefined" && window.sublevelToken) return window.sublevelToken;
     } catch (_) {}
     try {
       const saved = sessionStorage.getItem("sublevel.auth") || "";
