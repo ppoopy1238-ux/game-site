@@ -960,7 +960,7 @@ if(sublevelToken)initSublevelAdmin();
     try {
       if (typeof workerBase === "function") {
         const value = workerBase();
-        if (value) return String(value).replace(/\\/$/, "");
+        if (value) return String(value).replace(/\/$/, "");
       }
     } catch (_) {}
     return WORKER_FALLBACK;
