@@ -460,7 +460,7 @@ const OTHER="Casual and arcade";
 window.$=s=>document.querySelector(s);
 let GAMES=[],state={cat:"All",letter:"",q:"",shown:120};
 var store=window.store={get(k,d){try{const v=localStorage.getItem("sublevel."+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("sublevel."+k,JSON.stringify(v))}catch(e){}}};
-let window.sublevelToken=sessionStorage.getItem("sublevel.auth")||"";
+window.sublevelToken=sessionStorage.getItem("sublevel.auth")||"";
 try{if(window.sublevelToken){const part=window.sublevelToken.split(".")[0].replace(/-/g,"+").replace(/_/g,"/");const payload=JSON.parse(atob(part));if(!payload.exp||payload.exp<=Math.floor(Date.now()/1000))throw new Error("expired")}}catch(e){window.sublevelToken="";sessionStorage.removeItem("sublevel.auth")}
 function authQuery(){return window.sublevelToken?"&token="+encodeURIComponent(window.sublevelToken):""}
 function showLogin(message=""){ $("#loginGate").hidden=false;document.body.classList.add("locked");$("#loginError").textContent=message }
