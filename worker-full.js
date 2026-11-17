@@ -687,6 +687,63 @@ export default {
       );
     }
 
+    // Public status endpoint for the website maintenance screen.
+    if (
+      url.pathname === '/status' &&
+      ['GET', 'HEAD'].includes(request.method)
+    ) {
+      if (!env.DB) {
+        return json({
+          maintenance: false,
+          message: '',
+          announcement: ''
+        }, 200, cors);
+      }
+
+      try {
+        const rows = await env.DB.prepare(
+          "SELECT key, value FROM settings WHERE key IN ('maintenance', 'maintenanceMessage', 'announcement')"
+        ).all();
+
+        const settings = Object.fromEntries(
+          (rows.results || []).map(x => [x.key, x.value])
+        );
+
+        return json({
+          maintenance: settings.maintenance === '1',
+          message: settings.maintenanceMessage ||
+            'Sublevel is temporarily undergoing maintenance. Please check back soon.',
+          announcement: settings.announcement || ''
+        }, 200, cors);
+      } catch {
+        return json({ error: 'Could not read site status.' }, 503, cors);
+      }
+    }
+
+    // Enforce maintenance across all API and proxy routes.
+    // Login and status remain available; authenticated admins bypass maintenance.
+    if (env.DB && !['/health', '/status', '/auth/login', '/auth/me'].includes(url.pathname)) {
+      const maintenance = await env.DB.prepare(
+        "SELECT value FROM settings WHERE key = 'maintenance'"
+      ).first().catch(() => null);
+
+      if (maintenance?.value === '1') {
+        const user = await currentUser(request, url, env);
+
+        if (!user || user.role !== 'admin') {
+          const setting = await env.DB.prepare(
+            "SELECT value FROM settings WHERE key = 'maintenanceMessage'"
+          ).first().catch(() => null);
+
+          return json({
+            maintenance: true,
+            error: setting?.value ||
+              'Sublevel is temporarily undergoing maintenance. Please check back soon.'
+          }, 503, cors);
+        }
+      }
+    }
+
     // Authentication, invitations, and account management.
     if (url.pathname === '/auth/register' && request.method === 'POST') {
       try {
@@ -1122,29 +1179,6 @@ export default {
       return json({
         error: 'Method not allowed.'
       }, 405, cors);
-    }
-
-    // Maintenance mode.
-    if (env.DB) {
-      const maintenance = await env.DB.prepare(
-        "SELECT value FROM settings WHERE key = 'maintenance'"
-      ).first().catch(() => null);
-
-      const tokenUser = await currentUser(request, url, env);
-
-      if (
-        maintenance?.value === '1' &&
-        (!tokenUser || tokenUser.role !== 'admin')
-      ) {
-        const setting = await env.DB.prepare(
-          "SELECT value FROM settings WHERE key = 'maintenanceMessage'"
-        ).first().catch(() => null);
-
-        return json({
-          error: setting?.value ||
-            'Sublevel is temporarily undergoing maintenance. Please check back soon.'
-        }, 503, cors);
-      }
     }
 
     try {
