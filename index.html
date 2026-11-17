@@ -453,7 +453,7 @@ const CATS=[
 ["RPG and adventure",/rpg|fantasy|quest|dragon|undertale|deltarune|earthbound|adventure|hollow|dungeon|castle|rogue|final|golden/]
 ];
 const OTHER="Casual and arcade";
-const $=s=>document.querySelector(s);
+window.$=s=>document.querySelector(s);
 let GAMES=[],state={cat:"All",letter:"",q:"",shown:120};
 const store={get(k,d){try{const v=localStorage.getItem("sublevel."+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("sublevel."+k,JSON.stringify(v))}catch(e){}}};
 let sublevelToken=sessionStorage.getItem("sublevel.auth")||"";
