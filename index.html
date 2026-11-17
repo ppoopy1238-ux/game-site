@@ -214,5 +214,122 @@ $("#adminNav").addEventListener("click",()=>refreshAdminDashboard());
 if(sublevelToken)initSublevelAdmin();
 </script>
 
+
+<script id="sublevel-maintenance-gate">
+(() => {
+  const WORKER_FALLBACK = "https://sublevel-proxy.ppoopy1238.workers.dev";
+  const getWorkerBase = () => {
+    try {
+      if (typeof workerBase === "function") {
+        const value = workerBase();
+        if (value) return String(value).replace(/\\/$/, "");
+      }
+    } catch (_) {}
+    return WORKER_FALLBACK;
+  };
+
+  const getToken = () => {
+    try {
+      if (typeof sublevelToken !== "undefined" && sublevelToken) return sublevelToken;
+    } catch (_) {}
+    try {
+      const saved = sessionStorage.getItem("sublevel.auth") || "";
+      if (!saved) return "";
+      try {
+        const parsed = JSON.parse(saved);
+        return typeof parsed === "string" ? parsed : (parsed.token || "");
+      } catch (_) {
+        return saved;
+      }
+    } catch (_) {
+      return "";
+    }
+  };
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #sublevel-maintenance-screen{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(5,9,17,.97);color:#f4f7fb;text-align:center;font-family:inherit}
+    #sublevel-maintenance-screen.visible{display:flex}
+    #sublevel-maintenance-screen .sm-card{width:min(560px,100%);padding:34px 26px;border:1px solid rgba(255,255,255,.13);border-radius:18px;background:#101a2a;box-shadow:0 24px 90px rgba(0,0,0,.45)}
+    #sublevel-maintenance-screen .sm-mark{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#8fa8c9}
+    #sublevel-maintenance-screen h1{margin:14px 0 10px;font-size:clamp(26px,5vw,40px)}
+    #sublevel-maintenance-screen p{margin:0 auto 22px;max-width:440px;line-height:1.65;color:#bdc9d9;white-space:pre-wrap}
+    #sublevel-maintenance-screen button{border:1px solid rgba(255,255,255,.2);border-radius:9px;padding:11px 16px;background:#1d3554;color:#fff;font:inherit;cursor:pointer}
+    #sublevel-maintenance-screen button:hover{background:#29496f}
+    #sublevel-announcement{display:none;padding:10px 16px;text-align:center;background:#19314a;color:#eaf3ff;border-bottom:1px solid rgba(255,255,255,.12);font:14px/1.5 inherit}
+  `;
+  document.head.appendChild(style);
+
+  const screen = document.createElement("section");
+  screen.id = "sublevel-maintenance-screen";
+  screen.setAttribute("role", "alertdialog");
+  screen.setAttribute("aria-modal", "true");
+  screen.setAttribute("aria-labelledby", "sublevel-maintenance-title");
+  screen.innerHTML = '<div class="sm-card"><div class="sm-mark">Sublevel · System maintenance</div><h1 id="sublevel-maintenance-title">We’ll be back soon</h1><p id="sublevel-maintenance-message">Sublevel is temporarily undergoing maintenance. Please check back soon.</p><button id="sublevel-admin-access" type="button">Administrator sign-in</button></div>';
+  document.body.appendChild(screen);
+
+  const announcement = document.createElement("div");
+  announcement.id = "sublevel-announcement";
+  document.body.insertBefore(announcement, document.body.firstChild);
+
+  let maintenanceActive = false;
+  let adminAccessRequested = false;
+
+  screen.querySelector("#sublevel-admin-access").addEventListener("click", () => {
+    adminAccessRequested = true;
+    screen.classList.remove("visible");
+  });
+
+  async function checkStatus() {
+    try {
+      const base = getWorkerBase();
+      const response = await fetch(base + "/status", { cache: "no-store" });
+      if (!response.ok) return;
+      const status = await response.json();
+
+      announcement.textContent = status.announcement || "";
+      announcement.style.display = status.announcement && !status.maintenance ? "block" : "none";
+
+      if (!status.maintenance) {
+        maintenanceActive = false;
+        adminAccessRequested = false;
+        screen.classList.remove("visible");
+        return;
+      }
+
+      let isAdmin = false;
+      const token = getToken();
+      if (token) {
+        try {
+          const auth = await fetch(base + "/auth/me", {
+            headers: { "Authorization": "Bearer " + token },
+            cache: "no-store"
+          });
+          if (auth.ok) {
+            const data = await auth.json();
+            isAdmin = !!(data.user && data.user.role === "admin");
+          }
+        } catch (_) {}
+      }
+
+      maintenanceActive = true;
+      screen.querySelector("#sublevel-maintenance-message").textContent =
+        status.message || "Sublevel is temporarily undergoing maintenance. Please check back soon.";
+      if (isAdmin || adminAccessRequested) {
+        screen.classList.remove("visible");
+      } else {
+        screen.classList.add("visible");
+      }
+    } catch (error) {
+      // Do not lock visitors out if the status service is temporarily unreachable.
+      if (!maintenanceActive) screen.classList.remove("visible");
+    }
+  }
+
+  checkStatus();
+  window.setInterval(checkStatus, 20000);
+})();
+</script>
+
 </body>
 </html>
