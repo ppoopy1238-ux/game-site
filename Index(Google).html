@@ -477,9 +477,11 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 <script>
 var store = window.store;
 var $ = window.$ || function(selector){ return document.querySelector(selector); };
-/* Tab cloak: reopen this site inside an about:blank tab titled like Google Drive, and turn this tab into google.com */
+/* Tab cloak: try to move the site into an about:blank tab.
+   If the browser blocks the popup, keep the site running normally here. */
 (function(){
-  let on=true;try{on=JSON.parse(localStorage.getItem("sublevel.cloak"))!==false}catch(e){}
+  let on=true;
+  try{on=JSON.parse(localStorage.getItem("sublevel.cloak"))!==false}catch(e){}
   if(window.top!==window.self||!on||!/^https?:$/.test(location.protocol)||/nocloak/.test(location.search))return;
   const url=location.href;
   let T={title:"My Drive - Google Drive",icon:"https://www.google.com/s2/favicons?domain=drive.google.com&sz=64"};
@@ -487,25 +489,23 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
   function launch(){
     const w=window.open("about:blank","_blank");
     if(!w)return false;
-    const d=w.document;
-    d.open();
-    d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sublevel</title>'+
-      '<style>html,body{margin:0;height:100%;overflow:hidden;background:#000}iframe{border:0;width:100%;height:100%}</style></head>'+
-      '<body><iframe src="'+url.replace(/"/g,"&quot;")+'" allow="fullscreen; gamepad; autoplay; pointer-lock"></iframe></body></html>');
-    d.close();
-    try{d.title=T.title;const l=d.createElement("link");l.rel="icon";l.href=T.icon;d.head.appendChild(l)}catch(e){}
-    location.replace("https://www.google.com/");
-    return true;
+    try{
+      const d=w.document;
+      d.open();
+      d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sublevel</title>'+
+        '<style>html,body{margin:0;height:100%;overflow:hidden;background:#000}iframe{border:0;width:100%;height:100%}</style></head>'+
+        '<body><iframe src="'+url.replace(/"/g,"&quot;")+'" allow="fullscreen; gamepad; autoplay; pointer-lock"></iframe></body></html>');
+      d.close();
+      try{d.title=T.title;const l=d.createElement("link");l.rel="icon";l.href=T.icon;d.head.appendChild(l)}catch(e){}
+      location.replace("https://www.google.com/");
+      return true;
+    }catch(e){
+      try{w.close()}catch(_){}
+      return false;
+    }
   }
-  if(launch())return;
-  const g=document.createElement("div");
-  g.style.cssText="position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;text-align:center;padding:24px";
-  g.innerHTML='<div><h2 style="margin:0 0 8px">Sublevel</h2><p class="hint">Your browser blocked the cloaked tab. Click to open it.</p>'+
-    '<button class="more" style="margin:14px auto 10px" id="gopen">Open site</button>'+
-    '<button class="btn" id="gstay">Continue in this tab</button></div>';
-  document.body.appendChild(g);
-  document.getElementById("gopen").onclick=()=>{if(!launch())document.querySelector("#gopen").textContent="Allow pop-ups for this site, then click again"};
-  document.getElementById("gstay").onclick=()=>g.remove();
+  // A blocked popup is not an error: leave this page untouched and usable.
+  launch();
 })();
 const fav=d=>"https://www.google.com/s2/favicons?domain="+d+"&sz=64";
 const PRESETS=[["BiliBili","bilibili","bilibili.com"],["Google Calendar","Google Calendar","calendar.google.com"],["Canvas","Dashboard","canvas.instructure.com"],["Deltamath","DeltaMath","deltamath.com"],["Edpuzzle","Edpuzzle","edpuzzle.com"],["Google Classroom","Classroom","classroom.google.com"],["Google Drive","My Drive - Google Drive","drive.google.com"],["Gmail","Inbox - Gmail","mail.google.com"],["Itch.io","itch.io - Indie game hosting marketplace","itch.io"],["Khan Academy","Khan Academy","khanacademy.org"],["Google Meet","Google Meet","meet.google.com"],["Google Search","Google","www.google.com"],["Wikipedia","Wikipedia","en.wikipedia.org"],["Zoom","Zoom","zoom.us"]];
