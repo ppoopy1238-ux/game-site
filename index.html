@@ -1021,20 +1021,98 @@ async function initSublevelAdmin(){
 }
 window.initSublevelAdmin=initSublevelAdmin;
 async function refreshAdminDashboard(){
-  try{
-    const [stats,users,logs,invites,settings,auditData]=await Promise.all([
-      adminApi("/admin/overview"),adminApi("/admin/users"),adminApi("/admin/logs"),adminApi("/admin/invites"),adminApi("/admin/settings"),adminApi("/admin/audit")
-    ]);
-    $("#statUsers").textContent=stats.users;$("#statActive").textContent=stats.active;$("#statSuspended").textContent=stats.suspended;$("#statLogins").textContent=stats.logins24h;
-    adminUsersCache=users.users||[];adminLoginCache=logs.logs||[];adminAuditCache=auditData.audit||[];
-    renderAdminUsers();renderAdminLoginSecurity();renderAdminAudit();
-    const il=$("#inviteList");il.innerHTML="";
-    (invites.invites||[]).forEach(x=>{const p=document.createElement("p");p.className="hint";p.textContent="••••-"+x.code_hint+" · "+x.uses+"/"+x.max_uses+" uses · "+(x.revoked?"Revoked":adminDate(x.expires_at));il.appendChild(p)});
-    $("#maintenanceOn").checked=settings.settings.maintenance==="1";
-    $("#maintenanceMessage").value=settings.settings.maintenanceMessage||"";
-    $("#siteAnnouncement").value=settings.settings.announcement||"";
-    $("#adminMessage").textContent="Dashboard refreshed.";
-  }catch(e){$("#adminMessage").textContent=e.message}
+  const jobs = [
+    ["statistics", "/admin/overview"],
+    ["users", "/admin/users"],
+    ["login activity", "/admin/logs"],
+    ["invitations", "/admin/invites"],
+    ["site settings", "/admin/settings"],
+    ["administrator activity", "/admin/audit"]
+  ];
+  const results = await Promise.allSettled(
+    jobs.map(([, path]) => adminApi(path))
+  );
+  const failures = [];
+
+  const showError = (name, error) => {
+    failures.push(name + ": " + (error && error.message ? error.message : "Request failed"));
+  };
+
+  const [stats, users, logs, invites, settings, auditData] =
+    results.map(result => result.status === "fulfilled" ? result.value : null);
+
+  if (stats) {
+    $("#statUsers").textContent = stats.users ?? "—";
+    $("#statActive").textContent = stats.active ?? "—";
+    $("#statSuspended").textContent = stats.suspended ?? "—";
+    $("#statLogins").textContent = stats.logins24h ?? "—";
+  } else {
+    ["#statUsers", "#statActive", "#statSuspended", "#statLogins"].forEach(id => {
+      $(id).textContent = "Unavailable";
+    });
+    showError(jobs[0][0], results[0].reason);
+  }
+
+  if (users) {
+    adminUsersCache = users.users || [];
+    renderAdminUsers();
+  } else {
+    $("#adminUsers tbody").innerHTML =
+      '<tr><td colspan="6" class="hint">Could not load accounts.</td></tr>';
+    showError(jobs[1][0], results[1].reason);
+  }
+
+  if (logs) {
+    adminLoginCache = logs.logs || [];
+    renderAdminLoginSecurity();
+  } else {
+    $("#adminLogs tbody").innerHTML =
+      '<tr><td colspan="5" class="hint">Could not load login activity.</td></tr>';
+    $("#securitySummary").textContent = "Login activity could not be loaded.";
+    showError(jobs[2][0], results[2].reason);
+  }
+
+  const il = $("#inviteList");
+  il.innerHTML = "";
+  if (invites) {
+    const list = invites.invites || [];
+    if (!list.length) {
+      il.textContent = "No invitation codes have been created.";
+    } else {
+      list.forEach(x => {
+        const p = document.createElement("p");
+        p.className = "hint";
+        p.textContent = "••••-" + x.code_hint + " · " + x.uses + "/" +
+          x.max_uses + " uses · " + (x.revoked ? "Revoked" : adminDate(x.expires_at));
+        il.appendChild(p);
+      });
+    }
+  } else {
+    il.textContent = "Could not load invitations.";
+    showError(jobs[3][0], results[3].reason);
+  }
+
+  if (settings) {
+    const values = settings.settings || {};
+    $("#maintenanceOn").checked = values.maintenance === "1";
+    $("#maintenanceMessage").value = values.maintenanceMessage || "";
+    $("#siteAnnouncement").value = values.announcement || "";
+  } else {
+    showError(jobs[4][0], results[4].reason);
+  }
+
+  if (auditData) {
+    adminAuditCache = auditData.audit || [];
+    renderAdminAudit();
+  } else {
+    $("#adminAudit tbody").innerHTML =
+      '<tr><td colspan="4" class="hint">Could not load administrator activity.</td></tr>';
+    showError(jobs[5][0], results[5].reason);
+  }
+
+  $("#adminMessage").textContent = failures.length
+    ? "Some dashboard sections could not load — " + failures.join(" | ")
+    : "Dashboard refreshed.";
 }
 $("#adminUserSearch").addEventListener("input",renderAdminUsers);
 $("#adminUserFilter").addEventListener("change",renderAdminUsers);
