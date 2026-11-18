@@ -480,12 +480,15 @@ h2{letter-spacing:-.45px}
 #web .addressGo{width:28px;height:28px;border:0;border-radius:50%;background:color-mix(in srgb,var(--a) 18%,#263445);color:var(--a);font-size:17px;cursor:pointer}
 #web .addressGo:hover{background:color-mix(in srgb,var(--a) 28%,#263445)}
 .browserClose{font-size:25px;color:#c4ceda}.browserClose:hover{background:rgba(255,90,110,.15);color:#ff9aa7}
-#wtabs{padding:8px 14px 0;background:rgba(11,16,25,.98);border-bottom:1px solid rgba(137,150,168,.16)}
+#wtabs{display:flex;align-items:flex-end;gap:5px;min-height:43px;padding:7px 12px 0;background:rgba(11,16,25,.98);border-bottom:1px solid rgba(137,150,168,.16);order:0}
 #wtabs .wtab{min-width:130px;max-width:230px;border-radius:9px 9px 0 0;background:rgba(255,255,255,.035);border-color:transparent;color:#9ba9ba}
-#wtabs .wtab.on{background:var(--bg);border-color:rgba(137,150,168,.18);color:var(--txt)}
+#wtabs .wtab.on{background:#202a38;border-color:rgba(137,150,168,.18);color:var(--txt)}
 #wtabs .wtab.on:before{left:18px;right:18px;height:2px;background:linear-gradient(90deg,var(--a),var(--a2))}
 #wtabs #wplus{width:30px;height:30px;margin:0 0 4px;border:0;border-radius:50%;background:transparent;color:#c6d2df;font-size:20px}
 #wtabs #wplus:hover{background:rgba(255,255,255,.1)}
+#web{display:flex;flex-direction:column}
+#web .pbar{order:1}
+#web .searchTabs{order:2}
 #web .searchTabs{padding:9px 18px;background:rgba(13,19,29,.98);border-bottom:1px solid rgba(137,150,168,.14)}
 #web .searchTab{padding:6px 12px;border-radius:7px;font-size:12px}
 #web .searchTab.on{background:color-mix(in srgb,var(--a) 12%,var(--panel));color:var(--a);border-color:color-mix(in srgb,var(--a) 36%,var(--line))}
@@ -774,6 +777,7 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 </div>
 
 <div id="web" role="dialog" aria-label="Search results">
+  <div id="wtabs" role="tablist" aria-label="Browser tabs"></div>
   <div class="pbar">
     <div class="browserBrand" aria-label="Sublevel browser"><span class="browserMark">S</span><span>Sublevel</span></div>
     <div class="browserNav" aria-label="Browser navigation">
@@ -786,7 +790,6 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
     <button class="browserMore" id="wnew" title="Open current page in new window" aria-label="Open current page in new window">↗</button>
     <button class="browserClose" id="wclose" title="Close browser" aria-label="Close browser">×</button>
   </div>
-  <div id="wtabs" role="tablist" aria-label="Browser tabs"></div>
   <div class="searchTabs" id="searchTabs" role="tablist" aria-label="Search type">
     <button class="searchTab on" data-type="web" role="tab" aria-selected="true">Web</button>
     <button class="searchTab" data-type="images" role="tab" aria-selected="false">Images</button>
