@@ -350,8 +350,7 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
     </div>
 
     <div class="sec"><h2>Playing games</h2>
-      <label for="mode" style="margin-top:8px">Open games in</label>
-      <select id="mode"><option value="blank">A new about:blank tab</option><option value="page">A player on this page</option></select>
+      <p class="hint">Games open in the built-in player. Use the player toolbar to download the game HTML file, open it in a new tab, or enter fullscreen.</p>
       <div class="btns"><button class="btn" id="clear">Clear recently played</button></div>
     </div>
   </div>
@@ -447,6 +446,7 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 <div id="player" role="dialog" aria-label="Game player">
   <div class="pbar">
     <h3 id="ptitle"></h3>
+    <button class="btn" id="pdownload" type="button" disabled>Download game</button>
     <button class="btn" id="pfull">Fullscreen</button>
     <button class="btn" id="ptab">Open in new tab</button>
     <button class="btn" id="pclose">Close</button>
@@ -660,24 +660,32 @@ async function fetchGame(g){
 }
 async function play(g){
   current=g;html="";
+  $("#ptitle").textContent=g.name;
+  $("#pdownload").disabled=true;
+  $("#pmsg").style.display="grid";$("#pmsg").textContent="Loading game";
+  frame.srcdoc="";$("#player").classList.add("on");
   const rec=[g.id,...store.get("recent",[]).filter(x=>x!==g.id)].slice(0,12);
   store.set("recent",rec);renderRecent();
-  const blank=store.get("mode","blank")==="blank"&&window.top===window.self;
-  // Open the tab right away so the browser treats it as a direct click
-  const w=blank?window.open("about:blank","_blank"):null;
-  if(w){
-    try{w.document.title=g.name;w.document.body.style.cssText="margin:0;background:#000;color:#9ab;font-family:sans-serif;display:grid;place-items:center;height:100vh";w.document.body.textContent="Loading "+g.name}catch(e){}
-    try{html=await fetchGame(g);w.document.open();w.document.write(html);w.document.close()}
-    catch(e){try{w.document.body.textContent="This game could not be loaded. Close this tab and try again."}catch(_){}}
-    return;
+  try{
+    html=await fetchGame(g);
+    frame.srcdoc=html;
+    $("#pmsg").style.display="none";
+    $("#pdownload").disabled=false;
+  }catch(e){
+    $("#pmsg").textContent="This game could not be loaded. Check your connection and try again.";
   }
-  // Fallback: on-page player (setting chosen, or the pop-up was blocked)
-  $("#ptitle").textContent=g.name;$("#pmsg").style.display="grid";$("#pmsg").textContent=blank?"Pop-up blocked. Allow pop-ups for this site to open games in an about:blank tab. Loading here instead.":"Loading game";
-  frame.srcdoc="";$("#player").classList.add("on");
-  try{html=await fetchGame(g);frame.srcdoc=html;$("#pmsg").style.display="none"}
-  catch(e){$("#pmsg").textContent="This game could not be loaded. Check your connection and try again."}
 }
-$("#pclose").onclick=()=>{$("#player").classList.remove("on");frame.srcdoc=""};
+$("#pclose").onclick=()=>{$("#player").classList.remove("on");frame.srcdoc="";$("#pdownload").disabled=true};
+$("#pdownload").onclick=()=>{
+  if(!html||!current)return;
+  const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  const safeName=(current.name||"game").replace(/[\\/:*?"<>|]+/g,"-").replace(/\\s+/g," ").trim()||"game";
+  a.href=url;a.download=safeName.toLowerCase().endsWith(".html")?safeName:safeName+".html";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+};
 $("#pfull").onclick=()=>frame.requestFullscreen&&frame.requestFullscreen();
 $("#ptab").onclick=()=>{if(!html)return;const w=window.open("about:blank","_blank");if(w){w.document.open();w.document.write(html);w.document.close()}};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#player").classList.contains("on")&&!document.fullscreenElement)$("#pclose").click()});
@@ -840,7 +848,6 @@ $("#treset").onclick=()=>{store.set("tab",DEFAULT_TAB);applyTab(DEFAULT_TAB);fil
 {const t=store.get("tab",DEFAULT_TAB);fillTab(t);applyTab(t)}
 
 $("#cloak").value=store.get("cloak",true)?"on":"off";$("#cloak").onchange=e=>store.set("cloak",e.target.value==="on");
-$("#mode").value=store.get("mode","blank");$("#mode").onchange=e=>store.set("mode",e.target.value);
 $("#eng").value=store.get("eng","ddg");$("#eng").onchange=e=>store.set("eng",e.target.value);
 $("#worker").value=store.get("worker","");$("#worker").onchange=e=>store.set("worker",e.target.value.trim().replace(/\/$/,""));
 $("#worker").onblur=e=>{const v=e.target.value.trim().replace(/\/$/,"");e.target.value=v;store.set("worker",v)};
