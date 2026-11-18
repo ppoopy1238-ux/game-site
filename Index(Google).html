@@ -486,9 +486,13 @@ h2{letter-spacing:-.45px}
 #wtabs .wtab.on:before{left:18px;right:18px;height:2px;background:linear-gradient(90deg,var(--a),var(--a2))}
 #wtabs #wplus{width:30px;height:30px;margin:0 0 4px;border:0;border-radius:50%;background:transparent;color:#c6d2df;font-size:20px}
 #wtabs #wplus:hover{background:rgba(255,255,255,.1)}
-#web{flex-direction:column}
-#web .pbar{order:1}
-#web .searchTabs{order:2}
+/* Keep the browser chrome stacked at the very top: tabs first, address row directly below. */
+#web{flex-direction:column;min-height:0}
+#web>#wtabs{order:0;position:relative;flex:0 0 auto;width:100%}
+#web>.pbar{order:1;position:relative;top:auto;flex:0 0 auto;width:100%}
+#web>#searchTabs{order:2;flex:0 0 auto;width:100%}
+#web>#wnote{order:3;flex:0 0 auto}
+#web>#wframes{order:4;flex:1 1 auto;min-height:0;overflow:auto}
 #web .searchTabs{padding:9px 18px;background:rgba(13,19,29,.98);border-bottom:1px solid rgba(137,150,168,.14)}
 #web .searchTab{padding:6px 12px;border-radius:7px;font-size:12px}
 #web .searchTab.on{background:color-mix(in srgb,var(--a) 12%,var(--panel));color:var(--a);border-color:color-mix(in srgb,var(--a) 36%,var(--line))}
