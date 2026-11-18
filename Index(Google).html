@@ -777,7 +777,7 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
       d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sublevel</title>'+
         '<style>html,body{margin:0;height:100%;overflow:hidden;background:#000}iframe{border:0;width:100%;height:100%}</style></head>'+
         '<body><iframe src="'+url.replace(/"/g,"&quot;")+'" allow="fullscreen; gamepad; autoplay"></iframe></body></html>');
-        '<body><iframe src="'+url.replace(/"/g,"&quot;")+'" allow="fullscreen; gamepad; autoplay; pointer-lock"></iframe></body></html>');
+
       d.close();
       try{d.title=T.title;const l=d.createElement("link");l.rel="icon";l.href=T.icon;d.head.appendChild(l)}catch(e){}
       location.replace("https://www.google.com/");
