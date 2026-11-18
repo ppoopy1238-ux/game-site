@@ -272,6 +272,92 @@ h2{letter-spacing:-.45px}
   h1{letter-spacing:-1.5px}
 }
 
+
+/* SUBLEVEL identity pass — more atmosphere, without visual clutter */
+#v-home{isolation:isolate;overflow:hidden}
+#v-home:before{
+  content:"";position:absolute;z-index:-1;top:-74px;right:-140px;width:min(58vw,690px);height:500px;
+  pointer-events:none;opacity:.9;
+  background:
+    radial-gradient(ellipse at 54% 48%,rgba(76,220,255,.16),transparent 35%),
+    radial-gradient(ellipse at 70% 38%,rgba(167,139,250,.14),transparent 48%),
+    radial-gradient(ellipse at 50% 50%,transparent 47%,rgba(84,223,255,.16) 47.3%,transparent 47.8%),
+    radial-gradient(ellipse at 50% 50%,transparent 61%,rgba(167,139,250,.12) 61.3%,transparent 61.8%);
+  mask-image:linear-gradient(115deg,transparent 2%,#000 42%,#000 80%,transparent);
+}
+#v-home:after{
+  content:"S / 01     •     PLAY BEYOND";position:absolute;top:5px;right:8px;
+  color:rgba(137,150,168,.5);font:700 10px/1.4 ui-monospace,SFMono-Regular,monospace;
+  letter-spacing:.2em;pointer-events:none;
+}
+#v-home h1{
+  position:relative;max-width:780px;margin-top:35px;margin-bottom:18px;
+  font-size:clamp(48px,7vw,88px);line-height:.99;letter-spacing:-.065em;
+  text-shadow:0 12px 48px rgba(0,0,0,.32);
+}
+#v-home h1:after{
+  content:"";display:block;width:88px;height:4px;margin-top:24px;border-radius:5px;
+  background:linear-gradient(90deg,var(--a),var(--a2),transparent);
+  box-shadow:0 0 22px color-mix(in srgb,var(--a) 45%,transparent);
+}
+#v-home .lead{max-width:570px;font-size:16px;line-height:1.8;color:#aab6c7}
+#v-home .sbox{max-width:680px;margin-top:25px}
+#v-home .sbox input{
+  min-height:62px;padding:17px 22px 17px 50px;border-radius:14px;
+  background:rgba(16,22,32,.92);
+  box-shadow:0 18px 50px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.035);
+}
+#v-home .sbox:before{
+  content:"⌕";position:absolute;z-index:1;left:18px;top:7px;
+  color:var(--a);font-size:30px;line-height:1.3;pointer-events:none;
+}
+#v-home>.hint:not(.note){font-size:11px;letter-spacing:.035em}
+#v-home h2{
+  display:flex;align-items:center;gap:12px;margin-top:48px;margin-bottom:16px;
+  font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#b8c4d3;
+}
+#v-home h2:before{content:"";width:18px;height:1px;background:var(--a);box-shadow:0 0 10px var(--a)}
+#v-home .zones .zone{
+  position:relative;min-height:104px;padding:18px 17px;overflow:hidden;
+  background:linear-gradient(135deg,rgba(84,223,255,.055),transparent 62%),var(--panel);
+}
+#v-home .zones .zone:after{
+  content:"↗";position:absolute;right:14px;top:12px;color:rgba(84,223,255,.45);
+  font-size:17px;transition:transform .2s,color .2s;
+}
+#v-home .zones .zone:hover:after{transform:translate(3px,-3px);color:var(--a)}
+#v-home .row .card{position:relative;overflow:hidden}
+#v-home .row .card:after{
+  content:"";position:absolute;inset:auto 12px 0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--a),transparent);opacity:0;transition:opacity .2s;
+}
+#v-home .row .card:hover:after{opacity:.8}
+#v-games>h1,#v-entertainment>h1,#v-settings>h1,#v-admin>h1{
+  position:relative;padding-bottom:18px;margin-bottom:26px;
+}
+#v-games>h1:after,#v-entertainment>h1:after,#v-settings>h1:after,#v-admin>h1:after{
+  content:"";position:absolute;left:0;bottom:0;width:54px;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,var(--a),var(--a2));
+}
+.aiEyebrow{letter-spacing:.22em}
+.aiTitle{font-weight:800}
+.aiHeadingMark{position:relative;overflow:hidden}
+.aiHeadingMark:after{
+  content:"";position:absolute;inset:8px;border:1px solid color-mix(in srgb,var(--a) 35%,transparent);
+  border-radius:12px;transform:rotate(45deg);
+}
+.aiPulse{animation:sublevelPulse 2.4s ease-in-out infinite}
+@keyframes sublevelPulse{0%,100%{opacity:.65;box-shadow:0 0 7px var(--a)}50%{opacity:1;box-shadow:0 0 18px var(--a)}}
+.loginBrand{letter-spacing:-1.5px}
+.loginBrand:after{content:" / PLAY • CREATE • EXPLORE";display:block;margin-top:8px;font-size:9px;letter-spacing:.22em;color:var(--mut)}
+@media(max-width:820px){
+  #v-home:before{right:-230px;top:-100px;width:680px;opacity:.55}
+  #v-home:after{display:none}
+  #v-home h1{margin-top:24px;font-size:clamp(44px,11vw,68px)}
+  #v-home h2{margin-top:38px}
+}
+@media(prefers-reduced-motion:reduce){.aiPulse{animation:none}}
+
 </style>
 <script>
 var store = window.store;
