@@ -151,7 +151,7 @@ h2{font-size:22px;margin:38px 0 14px;font-weight:600}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 
 #loginGate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:var(--bg);background-image:radial-gradient(900px 500px at 78% -10%,color-mix(in srgb,var(--a) 18%,transparent),transparent),linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:auto,64px 64px,64px 64px}
-#loginGate[hidden]{display:none}.loginCard{width:min(420px,100%);padding:30px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 24px 80px #0008}.loginBrand{font-size:32px;font-weight:800;letter-spacing:-1px;margin:0 0 4px}.loginBrand span{color:var(--a)}.loginCard p{color:var(--mut);margin:0 0 22px}.loginCard label{display:block;font-size:13px;color:var(--mut);margin:14px 0 6px}.loginCard input{width:100%;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel2)}.loginCard button{width:100%;margin-top:18px;padding:12px;border:0;border-radius:8px;background:var(--a);color:#04101a;font-weight:700;cursor:pointer}#loginError{min-height:20px;margin:12px 0 0;color:#ff8585;font-size:13px}body.locked{overflow:hidden}
+#loginGate[hidden]{display:none}.loginCard{width:min(420px,100%);padding:30px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 24px 80px #0008}.loginCard form[hidden]{display:none}.loginBrand{font-size:32px;font-weight:800;letter-spacing:-1px;margin:0 0 4px}.loginBrand span{color:var(--a)}.loginCard p{color:var(--mut);margin:0 0 22px}.loginCard label{display:block;font-size:13px;color:var(--mut);margin:14px 0 6px}.loginCard input{width:100%;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel2)}.loginCard button{width:100%;margin-top:18px;padding:12px;border:0;border-radius:8px;background:var(--a);color:#04101a;font-weight:700;cursor:pointer}.loginCard button.loginSwitch{margin-top:10px;border:1px solid var(--line);background:var(--panel2);color:var(--a)}#loginError,#registerError{min-height:20px;margin:12px 0 0;color:#ff8585;font-size:13px}body.locked{overflow:hidden}
 #entTabs,#entCats{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
 .entChip{padding:7px 13px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--mut);cursor:pointer}
 .entChip:hover{border-color:var(--a);color:var(--txt)}.entChip.on{background:var(--a);border-color:var(--a);color:#04101a;font-weight:700}
@@ -194,7 +194,25 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 </script>
 </head>
 <body class="locked">
-<div id="loginGate"><form class="loginCard" id="loginForm"><div class="loginBrand">Sub<span>level</span></div><p>Sign in to enter the archive.</p><label for="loginUser">Username</label><input id="loginUser" name="username" autocomplete="username" value="" required><label for="loginPass">Password</label><input id="loginPass" name="password" type="password" autocomplete="current-password" required><button id="loginButton" type="submit">Enter Sublevel</button><div id="loginError" role="alert" aria-live="polite"></div></form></div>
+<div id="loginGate"><div class="loginCard">
+  <form id="loginForm">
+    <div class="loginBrand">Sub<span>level</span></div><p>Sign in to enter the archive.</p>
+    <label for="loginUser">Username</label><input id="loginUser" name="username" autocomplete="username" value="" required>
+    <label for="loginPass">Password</label><input id="loginPass" name="password" type="password" autocomplete="current-password" required>
+    <button id="loginButton" type="submit">Enter Sublevel</button>
+    <button class="loginSwitch" id="showRegister" type="button">Create an account</button>
+    <div id="loginError" role="alert" aria-live="polite"></div>
+  </form>
+  <form id="registerForm" hidden>
+    <div class="loginBrand">Create <span>account</span></div><p>Use an invitation code to join Sublevel.</p>
+    <label for="registerUser">Username</label><input id="registerUser" name="username" autocomplete="username" minlength="3" maxlength="24" required>
+    <label for="registerPass">Password</label><input id="registerPass" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="200" required>
+    <label for="registerInvite">Invitation code</label><input id="registerInvite" name="inviteCode" autocomplete="off" required>
+    <button id="registerButton" type="submit">Create account</button>
+    <button class="loginSwitch" id="showLogin" type="button">Back to sign in</button>
+    <div id="registerError" role="alert" aria-live="polite"></div>
+  </form>
+</div></div>
 <aside class="rail">
   <p class="brand">Sub<span>level</span></p>
   <p class="tag">Game distribution network</p>
@@ -517,6 +535,26 @@ function authQuery(){return window.sublevelToken?"&token="+encodeURIComponent(wi
 function showLogin(message=""){ $("#loginGate").hidden=false;document.body.classList.add("locked");$("#loginError").textContent=message }
 function enterSite(){ $("#loginGate").hidden=true;document.body.classList.remove("locked") }
 $("#loginForm").addEventListener("submit",async e=>{e.preventDefault();const base=workerBase();if(!base){showLogin("Set your Sublevel Worker URL in Settings first, then reload.");return}const button=$("#loginButton");button.disabled=true;button.textContent="Checking...";$("#loginError").textContent="";try{const response=await fetch(base+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("#loginUser").value.trim(),password:$("#loginPass").value})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.token){if(data.maintenance){const gate=document.getElementById("loginGate");if(gate)gate.hidden=true;document.body.classList.add("locked");}throw new Error(data.error||"Login failed. Check your username and password.");}window.sublevelToken=data.token;sessionStorage.setItem("sublevel.auth",window.sublevelToken);$("#loginPass").value="";enterSite();load();if(typeof window.initSublevelAdmin==="function")await window.initSublevelAdmin()}catch(err){showLogin(err.message||"Could not reach the Sublevel login service.")}finally{button.disabled=false;button.textContent="Enter Sublevel"}});
+$("#showRegister").addEventListener("click",()=>{ $("#loginForm").hidden=true;$("#registerForm").hidden=false;$("#registerError").textContent=""; });
+$("#showLogin").addEventListener("click",()=>{ $("#registerForm").hidden=true;$("#loginForm").hidden=false;$("#loginError").textContent=""; });
+$("#registerForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const base=workerBase();
+  if(!base){$("#registerError").textContent="The Sublevel account service is not configured.";return;}
+  const button=$("#registerButton");
+  button.disabled=true;button.textContent="Creating account...";$("#registerError").textContent="";
+  try{
+    const response=await fetch(base+"/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("#registerUser").value.trim(),password:$("#registerPass").value,inviteCode:$("#registerInvite").value.trim()})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok)throw new Error(data.error||"Could not create account.");
+    $("#loginUser").value=$("#registerUser").value.trim();
+    $("#loginPass").value="";$("#registerPass").value="";
+    $("#registerForm").hidden=true;$("#loginForm").hidden=false;
+    $("#loginError").style.color="var(--a)";
+    $("#loginError").textContent=data.message||"Account created. You can now sign in.";
+  }catch(err){$("#registerError").textContent=err.message||"Could not reach the account service."}
+  finally{button.disabled=false;button.textContent="Create account"}
+});
 if(window.sublevelToken)enterSite();else showLogin();
 const key=s=>s.toLowerCase().replace(/[^a-z0-9]/g,"");
 
