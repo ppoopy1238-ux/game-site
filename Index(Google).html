@@ -188,6 +188,90 @@ h2{font-size:22px;margin:38px 0 14px;font-weight:600}
 @media(max-width:820px){#aiWrap{grid-template-columns:1fr}#aiSide{min-height:0;max-height:180px}.aiWorkspaceTop{padding:10px 12px}#aiLog{max-height:55vh;min-height:300px}}
 @media(max-width:520px){.aiHeadingMark{width:48px;height:48px;font-size:27px}.aiStatusBar{align-items:flex-start;flex-direction:column}.aiStatusText{text-align:left}.aiSubtitle{font-size:13px}#aiLog{padding:14px 10px}.aiMsg{max-width:94%}.aiComposer{padding:9px}.aiComposerHint{font-size:9px}}
 
+
+/* Neon Nexus × Minimal Dark visual system */
+:root{
+  --bg:#080b12;--panel:#101620;--panel2:#151e2b;--line:#263244;
+  --txt:#edf2f8;--mut:#8996a8;--a:#54dfff;--a2:#a78bfa;--r:14px;
+}
+[data-theme=violet]{--bg:#0b0a12;--panel:#151321;--panel2:#1c192c;--line:#332d48;--a:#b59cff;--a2:#61dfff}
+[data-theme=amber]{--bg:#0e0c0a;--panel:#191510;--panel2:#211c16;--line:#393026;--a:#f5bd75;--a2:#ff916e}
+[data-theme=green]{--bg:#080f0e;--panel:#101a18;--panel2:#172420;--line:#293b35;--a:#69e6b2;--a2:#62d9ed}
+body{
+  background-color:var(--bg);
+  background-image:radial-gradient(ellipse 850px 520px at 85% -12%,color-mix(in srgb,var(--a) 8%,transparent),transparent 68%);
+  background-attachment:fixed;
+}
+body::before{display:none}
+.rail{
+  width:224px;padding:28px 18px;background:rgba(13,18,27,.92);
+  border-right:1px solid rgba(137,150,168,.14);backdrop-filter:blur(18px);
+}
+.brand{font-size:25px;letter-spacing:-.8px;margin:0 10px 3px}
+.tag{margin:0 10px 28px;font-size:11px;letter-spacing:.13em;text-transform:uppercase}
+.nav{
+  padding:11px 13px;border:1px solid transparent;border-left:1px solid transparent;
+  border-radius:10px;font-size:14px;transition:background .18s,border-color .18s,color .18s;
+}
+.nav:hover{background:rgba(255,255,255,.035);color:var(--txt)}
+.nav.on{
+  background:color-mix(in srgb,var(--a) 9%,var(--panel));
+  color:var(--txt);border:1px solid color-mix(in srgb,var(--a) 22%,var(--line));
+  border-left:1px solid color-mix(in srgb,var(--a) 22%,var(--line));
+  box-shadow:inset 2px 0 0 var(--a);
+}
+.gauge{border-color:rgba(137,150,168,.16);background:rgba(255,255,255,.018);border-radius:12px}
+main{margin-left:224px;padding:42px 48px 88px;max-width:1450px}
+h1{font-size:clamp(38px,5.5vw,68px);letter-spacing:-2.4px;font-weight:750}
+h2{letter-spacing:-.45px}
+.lead{font-size:16px;line-height:1.75}
+.sbox input,.fbar input,.set input,.set select,.sec input,.sec select{
+  border-radius:12px;background:var(--panel);border-color:rgba(137,150,168,.2);
+}
+.sbox input:focus,.fbar input:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 12%,transparent)}
+.row{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.card{
+  min-height:76px;padding:14px;background:linear-gradient(145deg,rgba(255,255,255,.025),transparent 75%),var(--panel);
+  border-color:rgba(137,150,168,.17);border-radius:14px;
+  transition:transform .18s,border-color .18s,background .18s,box-shadow .18s;
+}
+.card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--a) 55%,var(--line));background:var(--panel2);box-shadow:0 12px 30px #0003}
+.mono{border-radius:11px;color:#08111a;background:linear-gradient(140deg,var(--a),color-mix(in srgb,var(--a2) 76%,var(--a)))}
+.zone,.sec,.entCard{border-radius:14px;border-color:rgba(137,150,168,.17);background:var(--panel)}
+.zone:hover,.entCard:hover{border-color:color-mix(in srgb,var(--a) 50%,var(--line))}
+.chip,.entChip,.searchTab{border-radius:9px;background:var(--panel);border-color:rgba(137,150,168,.18)}
+.chip.on,.entChip.on,.searchTab.on{background:color-mix(in srgb,var(--a) 13%,var(--panel2));color:var(--a);border-color:color-mix(in srgb,var(--a) 42%,var(--line))}
+.btn,.sw button,.more{border-radius:10px}
+.btn{background:var(--panel2);border-color:rgba(137,150,168,.2)}
+.btn:hover,.sw button:hover{border-color:var(--a)}
+.pri,.loginCard button:not(.loginSwitch){background:var(--a);color:#07121a;border-color:var(--a)}
+.more{border-color:color-mix(in srgb,var(--a) 48%,var(--line));color:var(--a)}
+#player,#web{background:var(--bg)}
+.pbar{background:var(--panel);border-color:rgba(137,150,168,.16)}
+#aiSide,.aiWorkspace,.aiStatusBar,.aiComposer,.aiWorkspaceTop{border-color:rgba(137,150,168,.16)}
+.aiWorkspace{background:var(--panel);box-shadow:0 20px 60px #0002}
+.aiStatusBar{background:linear-gradient(100deg,var(--panel),var(--panel2))}
+.aiHeadingMark{border-radius:16px;background:var(--panel);box-shadow:0 12px 32px #0002}
+.aiWelcomeIcon{border-radius:16px}
+.aiMsg{border-color:rgba(137,150,168,.2)}
+.aiMsg.u{background:color-mix(in srgb,var(--a) 8%,var(--panel));border-color:color-mix(in srgb,var(--a) 35%,var(--line))}
+.aiMsg.m{background:var(--panel2)}
+#aiForm{border-radius:13px}
+#aiSend{border-radius:10px}
+.loginCard{border-radius:18px;background:var(--panel);border-color:rgba(137,150,168,.2);box-shadow:0 28px 90px #0008}
+#loginGate{background-color:var(--bg);background-image:radial-gradient(ellipse 850px 520px at 85% -12%,color-mix(in srgb,var(--a) 9%,transparent),transparent 68%)}
+#entModal{backdrop-filter:blur(10px)}
+.entDlg{border-radius:16px}
+@media(max-width:820px){
+  .rail{width:auto;padding:13px 14px;background:rgba(13,18,27,.96)}
+  main{margin:0;padding:25px 18px 64px}
+  .tag,.gauge{display:none}
+}
+@media(max-width:520px){
+  main{padding:22px 14px 56px}
+  h1{letter-spacing:-1.5px}
+}
+
 </style>
 <script>
 var store = window.store;
