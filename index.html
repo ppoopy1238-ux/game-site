@@ -1205,10 +1205,23 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
       if (!response.ok) return;
       const status = await response.json();
 
-      announcement.textContent = status.announcement || "";
-      announcement.style.display = status.announcement && !status.maintenance ? "block" : "none";
+      // Workers deployed from older versions may return maintenance as "0"/"1"
+      // instead of a JSON boolean. Treat only explicit enabled values as ON.
+      const maintenanceValue =
+        status.maintenance !== undefined ? status.maintenance :
+        status.maintenanceMode !== undefined ? status.maintenanceMode :
+        false;
+      const maintenanceEnabled =
+        maintenanceValue === true ||
+        maintenanceValue === 1 ||
+        ["1", "true", "on", "enabled", "yes"].includes(
+          String(maintenanceValue).trim().toLowerCase()
+        );
 
-      if (!status.maintenance) {
+      announcement.textContent = status.announcement || "";
+      announcement.style.display = status.announcement && !maintenanceEnabled ? "block" : "none";
+
+      if (!maintenanceEnabled) {
         maintenanceActive = false;
         adminAccessRequested = false;
         screen.classList.remove("visible");
