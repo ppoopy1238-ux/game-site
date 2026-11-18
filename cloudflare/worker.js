@@ -1622,6 +1622,28 @@ export default {
 
 
 
+        // During maintenance, only administrator accounts may sign in.
+        // Enforce this on the server, not just in the browser overlay.
+        if (valid && user.role !== 'admin') {
+          const maintenance = await env.DB.prepare(
+            "SELECT value FROM settings WHERE key = 'maintenance'"
+          ).first().catch(() => null);
+
+          if (maintenance?.value === '1') {
+            const setting = await env.DB.prepare(
+              "SELECT value FROM settings WHERE key = 'maintenanceMessage'"
+            ).first().catch(() => null);
+
+            await recordLogin(env, user.id, username, false, request);
+
+            return json({
+              maintenance: true,
+              error: setting?.value ||
+                'Sublevel is temporarily undergoing maintenance. Only administrators can sign in right now.'
+            }, 503, cors);
+          }
+        }
+
         await recordLogin(
 
           env,
