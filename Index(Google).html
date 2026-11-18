@@ -20,17 +20,16 @@
   </style>
 </head>
 <body>
-  <!-- The actual app stays on GitHub Pages, preserving its normal origin and
-       avoiding Apps Script's isolated JavaScript execution contexts. -->
+  <!-- Google Apps Script wrapper. Loads the latest GitHub Pages app, including the admin dashboard loading fix (7eeecdd). -->
   <iframe
     id="app"
     title="Sublevel application"
-    src="https://ppoopy1238-ux.github.io/game-site/"
+    src="https://ppoopy1238-ux.github.io/game-site/?v=7eeecdd"
     allow="clipboard-read; clipboard-write; fullscreen"
     allowfullscreen
     referrerpolicy="strict-origin-when-cross-origin">
   </iframe>
-  <a id="fallback" href="https://ppoopy1238-ux.github.io/game-site/" target="_blank" rel="noopener">
+  <a id="fallback" href="https://ppoopy1238-ux.github.io/game-site/?v=7eeecdd" target="_blank" rel="noopener">
     Open Sublevel directly
   </a>
 </body>
