@@ -913,83 +913,30 @@ render();
 var store = window.store;
 var $ = window.$ || function(selector){ return document.querySelector(selector); };
 (()=>{
-let chats=store.get("chats",[]),cur=null,busy=false;
-const log=$("#aiLog");
-const save=()=>{chats=chats.slice(0,50);store.set("chats",chats)};
-const find=id=>chats.find(c=>c.id===id);
+let chats=store.get("chats",[]),cur=null,busy=false,loaded=null,loading=false,autoStarted=false;
+const log=$("#aiLog"),DEFAULT_MODEL="Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+const save=()=>{chats=chats.slice(0,50);store.set("chats",chats)},find=id=>chats.find(c=>c.id===id);
 function add(cls,text){const d=document.createElement("div");d.className="aiMsg "+cls;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
-function note(){const k=store.get("gkey","");$("#aiNote").textContent=k?"Chatting with "+(store.get("gmodel","")||"gemini-3.8-flash")+". Chats are saved in this browser.":"Add your Gemini API key in Settings to start chatting."}
-function renderList(){
-  const l=$("#aiList");l.innerHTML="";
-  chats.forEach(c=>{
-    const d=document.createElement("div");d.className="aiChat"+(c.id===cur?" on":"");d.dataset.id=c.id;d.setAttribute("role","button");d.tabIndex=0;
-    const s=document.createElement("span");s.textContent=c.title;s.title=c.title;
-    const x=document.createElement("b");x.dataset.x=c.id;x.textContent="×";x.title="Delete chat";x.setAttribute("aria-label","Delete chat");
-    d.append(s,x);l.appendChild(d);
-  });
-  $("#aiEmpty").style.display=chats.length?"none":"block";
-  $("#aiDelAll").style.display=chats.length?"block":"none";
-}
-function openChat(id){
-  const c=find(id);if(!c)return;cur=id;log.innerHTML="";
-  c.msgs.forEach(m=>add(m.role==="user"?"u":"m",m.text));renderList();
-}
-function newChat(){cur=null;log.innerHTML="";renderList();$("#aiIn").focus()}
-async function send(){
-  const text=$("#aiIn").value.trim();if(!text||busy)return;
-  const key=store.get("gkey","").trim(),model=(store.get("gmodel","")||"gemini-3.8-flash").trim();
-  if(!key){add("err","No API key yet. Add one under Settings > Google AI.");return}
-  let chat=cur&&find(cur),fresh=false;
-  if(!chat){chat={id:Date.now().toString(36),title:text.slice(0,40),t:Date.now(),msgs:[]};chats.unshift(chat);cur=chat.id;fresh=true}
-  busy=true;$("#aiSend").disabled=true;$("#aiIn").value="";
-  add("u",text);chat.msgs.push({role:"user",text});renderList();
-  const out=add("m","…");
-  try{
-    const body=JSON.stringify({contents:chat.msgs.map(m=>({role:m.role,parts:[{text:m.text}]}))});
-    const fb=(store.get("gfallback","")||"gemini-2.5-flash, gemini-2.5-flash-lite").split(",").map(s=>s.trim()).filter(s=>s&&s!==model);
-    const queue=[model,...fb];let j,used=model,lastErr;
-    for(const m of queue){
-      try{
-        const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(m)+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:body});
-        const jj=await r.json().catch(()=>({}));
-        if(!r.ok){const msg=(jj.error&&jj.error.message)||("Request failed ("+r.status+")");const busyErr=/high demand|overloaded|try again later/i.test(msg)||r.status===503||(jj.error&&jj.error.status==="UNAVAILABLE");const e=new Error(msg);e.retry=busyErr;throw e}
-        j=jj;used=m;break;
-      }catch(e){lastErr=e;if(!e.retry)throw e}
-    }
-    if(!j)throw lastErr;
-    const c=j.candidates&&j.candidates[0];
-    const reply=c&&c.content&&c.content.parts?c.content.parts.map(p=>p.text||"").join(""):"";
-    if(!reply)throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?"Blocked: "+j.promptFeedback.blockReason:"The model returned no text.");
-    out.textContent=reply;if(used!==model){const n=document.createElement("small");n.style.cssText="display:block;margin-top:8px;color:var(--mut)";n.textContent="Answered by "+used+" ("+model+" was busy)";out.appendChild(n)}chat.msgs.push({role:"model",text:reply});chat.t=Date.now();
-    chats=chats.filter(x=>x!==chat);chats.unshift(chat);save();
-  }catch(e){
-    out.className="aiMsg err";out.textContent=e.message;chat.msgs.pop();
-    if(fresh&&!chat.msgs.length){chats=chats.filter(x=>x!==chat);cur=null}
-    save();
-  }
-  busy=false;$("#aiSend").disabled=false;renderList();log.scrollTop=log.scrollHeight;$("#aiIn").focus();
-}
-function delChat(id){
-  if(busy)return;chats=chats.filter(c=>c.id!==id);save();
-  if(cur===id)newChat();else renderList();
-}
-$("#aiSend").onclick=send;
-$("#aiIn").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}};
-$("#aiClear").onclick=()=>{if(!busy)newChat()};
-$("#aiDelAll").onclick=()=>{if(busy||!confirm("Delete all saved chats?"))return;chats=[];save();newChat()};
-$("#aiList").onclick=e=>{
-  const x=e.target.closest("[data-x]");if(x){delChat(x.dataset.x);return}
-  const c=e.target.closest(".aiChat");if(c&&!busy)openChat(c.dataset.id);
-};
-$("#aiList").onkeydown=e=>{if(e.key==="Enter"){const c=e.target.closest(".aiChat");if(c&&!busy)openChat(c.dataset.id)}};
-$("#gkey").value=store.get("gkey","");$("#gmodel").value=store.get("gmodel","");
-$("#gkey").onchange=e=>{store.set("gkey",e.target.value.trim());note()};
-$("#gfallback").value=store.get("gfallback","");$("#gfallback").onchange=e=>store.set("gfallback",e.target.value.trim());
-$("#gmodel").onchange=e=>{store.set("gmodel",e.target.value.trim());note()};
-document.querySelector('[data-v="ai"]').addEventListener("click",note);
-note();renderList();
-})();
-</script>
+function provider(){return store.get("aiProvider","local")||"local"}
+function model(){return store.get("localModel",DEFAULT_MODEL)||DEFAULT_MODEL}
+function status(t){$("#aiStatus").textContent=t}
+function note(){const p=provider();$("#aiNote").textContent=p==="local"?"Using Local AI on this device. No API key is needed.":"Using Google Gemini. Add your API key in Settings.";$("#geminiSettings").style.display=p==="gemini"?"block":"none"}
+function render(){const l=$("#aiList");l.innerHTML="";chats.forEach(c=>{const d=document.createElement("div");d.className="aiChat"+(c.id===cur?" on":"");d.dataset.id=c.id;d.setAttribute("role","button");d.tabIndex=0;const x=document.createElement("span");x.textContent=c.title;const del=document.createElement("b");del.dataset.x=c.id;del.textContent="x";d.append(x,del);l.appendChild(d)});$("#aiEmpty").style.display=chats.length?"none":"block";$("#aiDelAll").style.display=chats.length?"block":"none"}
+function openChat(id){const c=find(id);if(!c)return;cur=id;log.innerHTML="";c.msgs.forEach(m=>add(m.role==="user"?"u":"m",m.text));render()}
+function newChat(){cur=null;log.innerHTML="";render()}
+async function ensureLocal(){if(loaded&&loaded.id===model())return loaded.engine;if(loading)throw new Error("The local model is already loading.");if(!navigator.gpu)throw new Error("WebGPU is not available. Use recent Chrome or Edge, or select Gemini in Settings.");loading=true;$("#aiSend").disabled=true;status("Downloading and starting the local model. The first download may take a while.");try{if(!window.SublevelLocalAI)throw new Error("Local AI module is not ready. Reload the page and try again.");const id=model(),engine=await window.SublevelLocalAI.load(id,t=>status(t));loaded={id,engine};status("Local AI is ready on this device.");return loaded}catch(err){status("Local AI could not start: "+err.message);throw err}finally{loading=false;$("#aiSend").disabled=false}}
+async function gemini(chat){const key=store.get("gkey","").trim(),main=(store.get("gmodel","")||"gemini-3.8-flash").trim();if(!key)throw new Error("Add a Gemini API key in Settings or select Local AI.");const body=JSON.stringify({contents:chat.msgs.map(m=>({role:m.role,parts:[{text:m.text}]}))});const fb=(store.get("gfallback","")||"gemini-2.5-flash, gemini-2.5-flash-lite").split(",").map(x=>x.trim()).filter(x=>x&&x!==main);let last;for(const name of [main,...fb]){try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(name)+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body});const j=await r.json().catch(()=>({}));if(!r.ok){const er=new Error(j.error&&j.error.message||"Gemini request failed ("+r.status+")");er.retry=r.status===503||/overloaded|high demand|try again later/i.test(er.message);throw er}const ca=j.candidates&&j.candidates[0],answer=ca&&ca.content&&ca.content.parts?ca.content.parts.map(p=>p.text||"").join(""):"";if(!answer)throw new Error("Gemini returned no text.");return answer}catch(err){last=err;if(!err.retry)throw err}}throw last}
+async function send(){const text=$("#aiIn").value.trim();if(!text||busy)return;let chat=cur&&find(cur),fresh=false;if(!chat){chat={id:Date.now().toString(36),title:text.slice(0,40),t:Date.now(),msgs:[]};chats.unshift(chat);cur=chat.id;fresh=true}busy=true;$("#aiSend").disabled=true;$("#aiIn").value="";add("u",text);chat.msgs.push({role:"user",text});render();const out=add("m","...");try{let answer;if(provider()==="local"){await ensureLocal();const msgs=[{role:"system",content:"You are Sublevel AI, a helpful assistant. Answer clearly and accurately."},...chat.msgs.map(x=>({role:x.role==="model"?"assistant":x.role,content:x.text}))];answer=await window.SublevelLocalAI.ask(msgs,p=>{out.textContent=p;log.scrollTop=log.scrollHeight})}else answer=await gemini(chat);out.textContent=answer;chat.msgs.push({role:"model",text:answer});chat.t=Date.now();chats=chats.filter(x=>x!==chat);chats.unshift(chat);save()}catch(err){out.className="aiMsg err";out.textContent=err.message;chat.msgs.pop();if(fresh&&!chat.msgs.length){chats=chats.filter(x=>x!==chat);cur=null}save()}busy=false;$("#aiSend").disabled=false;render();log.scrollTop=log.scrollHeight;$("#aiIn").focus()}
+$("#aiSend").onclick=send;$("#aiIn").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}};
+$("#aiClear").onclick=()=>{if(!busy)newChat()};$("#aiDelAll").onclick=()=>{if(busy||!confirm("Delete all saved chats?"))return;chats=[];save();newChat()};
+$("#aiList").onclick=e=>{const x=e.target.closest("[data-x]");if(x){if(busy)return;chats=chats.filter(c=>c.id!==x.dataset.x);save();if(cur===x.dataset.x)newChat();else render();return}const d=e.target.closest(".aiChat");if(d&&!busy)openChat(d.dataset.id)};
+$("#aiProvider").value=provider();$("#localModel").value=model();$("#gkey").value=store.get("gkey","");$("#gmodel").value=store.get("gmodel","");$("#gfallback").value=store.get("gfallback","");
+$("#aiProvider").onchange=e=>{store.set("aiProvider",e.target.value);note();if(provider()==="local"&&$("#v-ai").classList.contains("on"))ensureLocal().catch(()=>{})};
+$("#localModel").onchange=e=>{store.set("localModel",e.target.value);loaded=null;if(provider()==="local"&&$("#v-ai").classList.contains("on"))ensureLocal().catch(()=>{})};
+$("#gkey").onchange=e=>store.set("gkey",e.target.value.trim());$("#gmodel").onchange=e=>store.set("gmodel",e.target.value.trim());$("#gfallback").onchange=e=>store.set("gfallback",e.target.value.trim());
+document.querySelector('[data-v="ai"]').addEventListener("click",()=>{note();if(provider()==="local"&&!autoStarted){autoStarted=true;ensureLocal().catch(()=>{})}});
+note();render();
+})();</script>
 
 <script>
 var store = window.store;
@@ -1333,5 +1280,13 @@ var $ = window.$ || function(selector){ return document.querySelector(selector);
 })();
 </script>
 
+<script type="module">
+import * as webllm from "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.79/+esm";
+let engine=null,activeModel="";
+window.SublevelLocalAI={
+ async load(model,onProgress){if(engine&&activeModel===model)return engine;engine=null;activeModel="";engine=await webllm.CreateMLCEngine(model,{initProgressCallback:r=>onProgress&&onProgress(r.text+" ("+Math.round((r.progress||0)*100)+"%)")});activeModel=model;return engine},
+ async ask(messages,onUpdate){if(!engine)throw new Error("Local model is not loaded.");let answer="";const stream=await engine.chat.completions.create({messages,stream:true,temperature:0.7,max_tokens:512});for await(const chunk of stream){const token=chunk.choices&&chunk.choices[0]&&chunk.choices[0].delta&&chunk.choices[0].delta.content||"";if(token){answer+=token;if(onUpdate)onUpdate(answer)}}return answer}
+};
+</script>
 </body>
 </html>
